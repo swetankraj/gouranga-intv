@@ -112,7 +112,6 @@ export default function Home() {
     }
   };
 
-    
   const addToCart = async (
     token,
     items,
@@ -123,27 +122,40 @@ export default function Home() {
   ) => {
     // console.log(options.preventDuplicate, isItemInCart(items, productId));
 
-    if(!token){
-      enqueueSnackbar("Login to add an item to the Cart", { variant: "warning" });
-    }else if(options.preventDuplicate && isItemInCart(items, productId)){
+    if (!token) {
+      enqueueSnackbar("Login to add an item to the Cart", {
+        variant: "warning",
+      });
+    } else if (options.preventDuplicate && isItemInCart(items, productId)) {
       console.log("item already in cart");
-      enqueueSnackbar("Item already in cart. Use the cart sidebar to update quantity or remove item.", {variant:"warning"});
-    }else{
-      try{
-        const response = await axios.post(`${config.endpoint}/cart`, {productId, qty}, {
-          headers : {
-            Authorization : `Bearer ${token}`,
-          },
-        });
+      enqueueSnackbar(
+        "Item already in cart. Use the cart sidebar to update quantity or remove item.",
+        { variant: "warning" }
+      );
+    } else {
+      try {
+        const response = await axios.post(
+          `${config.endpoint}/cart`,
+          { productId, qty },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         updateCartItems(response.data, products);
-      }catch(error){
-        if(error.response) {
-          enqueueSnackbar(error.response.data.message, {variant: "error"});
+      } catch (error) {
+        if (error.response) {
+          enqueueSnackbar(error.response.data.message, { variant: "error" });
         } else {
-          enqueueSnackbar("Could not fetch products. Check that the backend is running, reachable and returns valid JSON", {variant: "error"});
+          enqueueSnackbar(
+            "Could not fetch products. Check that the backend is running, reachable and returns valid JSON",
+            { variant: "error" }
+          );
         }
       }
     }
+  };
   return (
     <div>
       <Header>
