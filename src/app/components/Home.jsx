@@ -24,6 +24,12 @@ export default function Home() {
   const [token, setToken] = useState(null);
   const [items, setItems] = useState([]);
 
+  let mdValue = 12;
+  let localStorageToken = undefined;
+  if (typeof window !== "undefined" && localStorage.getItem(token)) mdValue = 9;
+  if (typeof window !== "undefined" && localStorage.getItem(token))
+    localStorageToken = localStorage.getItem(token);
+
   useEffect(() => {
     const fetchData = async () => {
       const productsData = await performAPICall();
@@ -193,7 +199,7 @@ export default function Home() {
         />
       </div>
       <Grid>
-        <Grid item md={`${localStorage.getItem("token")} ? "9" : "12"`}>
+        <Grid item md={mdValue}>
           <Grid container>
             <Grid item className="w-full">
               <Box className="hero flex justify-center md:justify-end items-center h-[10rem] md:h-[20rem] md:pr-[8rem]">
@@ -235,7 +241,7 @@ export default function Home() {
             </Box>
           )}
         </Grid>
-        {localStorage.getItem("token") ? (
+        {localStorageToken ? (
           <Grid item md={3} xs={12} backgroundColor="#E9F5E1">
             <Cart products={products} items={cart} handleQuantity={addToCart} />
           </Grid>
