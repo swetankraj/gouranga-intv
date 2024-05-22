@@ -21,12 +21,12 @@ const ProductCard = ({ product, handleAddToCart }) => {
       />
 
       <CardContent>
-        <Typography gutterBottom>{product.name}</Typography>
+        <Typography gutterBottom>{product.title}</Typography>
         <Typography variant="h6" gutterBottom fontWeight="700">
-          ${product.cost}
+          ${product.price}
         </Typography>
 
-        <Rating
+        {/* <Rating
           name="read-only"
           defaultValue={product.rating}
           readOnly
@@ -34,9 +34,7 @@ const ProductCard = ({ product, handleAddToCart }) => {
           // onChange={(event, newValue) => {
           //   setValue(newValue);
           // }}
-        />
-
-        <br />
+        /> */}
       </CardContent>
       <CardActions>
         <Button

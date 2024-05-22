@@ -9,94 +9,36 @@ import { Box } from "@mui/system";
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Definition of Data Structures used
-/**
- * @typedef {Object} Product - Data on product available to buy
- *
- * @property {string} name - The name or title of the product
- * @property {string} category - The category that the product belongs to
- * @property {number} cost - The price to buy the product
- * @property {number} rating - The aggregate rating of the product (integer out of five)
- * @property {string} image - Contains URL for the product image
- * @property {string} _id - Unique ID for the product
- */
-
-/**
- * @typedef {Object} CartItem -  - Data on product added to cart
- *
- * @property {string} name - The name or title of the product in cart
- * @property {string} qty - The quantity of product added to cart
- * @property {string} category - The category that the product belongs to
- * @property {number} cost - The price to buy the product
- * @property {number} rating - The aggregate rating of the product (integer out of five)
- * @property {string} image - Contains URL for the product image
- * @property {string} productId - Unique ID for the product
- */
-
-/**
- * Returns the complete data on all products in cartData by searching in productsData
- *
- * @param { Array.<{ productId: String, qty: Number }> } cartData
- *    Array of objects with productId and quantity of products in cart
- *
- * @param { Array.<Product> } productsData
- *    Array of objects with complete data on all available products
- *
- * @returns { Array.<CartItem> }
- *    Array of objects with complete data on products in cart
- *
- */
 export const generateCartItemsFrom = (cartData, productsData) => {
   const result = [];
+  cartData = typeof cartData == "string" ? JSON.parse(cartData) : cartData;
   for (let cartItem of cartData) {
     const data = productsData.find(
-      (product) => product._id === cartItem.productId
+      (product) => product.id == cartItem.productId
     );
-    const modifiedData = { ...data, qty: `${cartItem.qty}` };
+    const modifiedData = { ...data, qty: `${cartItem.quantity}` };
     result.push(modifiedData);
   }
 
-  // console.log("result >>", result);
+  console.log("result >>", result);
   return result;
 };
 
-/**
- * Get the total value of all products added to the cart
- *
- * @param { Array.<CartItem> } items
- *    Array of objects with complete data on products added to the cart
- *
- * @returns { Number }
- *    Value of all items in the cart
- *
- */
 export const getTotalCartValue = (items = []) => {
+  // console.log("total cartvalue>>> ", items);
   const totalCartValue = items.reduce(
-    (acc, item) => acc + item.cost * (item.qty * 1),
+    (acc, item) => acc + item.price * (item.qty * 1),
     0
   );
 
   return totalCartValue;
 };
 
-// TODO: CRIO_TASK_MODULE_CHECKOUT - Implement function to return total cart quantity
-/**
- * Return the sum of quantities of all products added to the cart
- *
- * @param { Array.<CartItem> } items
- *    Array of objects with complete data on products in cart
- *
- * @returns { Number }
- *    Total quantity of products added to the cart
- *
- */
 export const getTotalItems = (items = []) => {
   const totalCartItems = items.reduce((acc, item) => acc + item.qty * 1, 0);
   // console.log(totalCartItems);
   return totalCartItems;
 };
-
-
 
 const ItemQuantity = ({ value, handleAdd, handleDelete, isReadOnly }) => {
   // console.log("isReadOnly >> ", isReadOnly);
@@ -124,15 +66,16 @@ const ItemQuantity = ({ value, handleAdd, handleDelete, isReadOnly }) => {
   );
 };
 
-
 const Cart = ({ products, items = [], handleQuantity, isReadOnly }) => {
   const history = useRouter();
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("loggedIn");
+
+  console.log("items>>> ", items);
 
   if (!items.length) {
     return (
-      <Box className="cart empty">
-        <ShoppingCartOutlined className="empty-cart-icon" />
+      <Box className="cart empty flex flex-col justify-center items-center min-h-[60vh]">
+        <ShoppingCartOutlined className="empty-cart-icon w-[3rem] h-[3rem] text-[#aaa]" />
         <Box color="#aaa" textAlign="center" p={1}>
           Cart is empty. Add more items to the cart to checkout.
         </Box>
@@ -142,20 +85,18 @@ const Cart = ({ products, items = [], handleQuantity, isReadOnly }) => {
 
   return (
     <>
-      <Box className="cart">
+      <Box className="cart bg-white rounded m-2">
         {/* TODO: CRIO_TASK_MODULE_CART - Display view for each cart item with non-zero quantity */}
         {items.map((item) => (
           <Box
             display="flex"
             alignItems="flex-start"
             padding="1rem"
-            key={item._id}
+            key={item.id}
           >
-            <Box className="image-container">
+            <Box className="image-container max-h-[10rem] max-w-[8rem]">
               <img
-                // Add product image
                 src={item.image}
-                // Add product name as alt eext
                 alt={item.name}
                 width="100%"
                 height="100%"
@@ -168,7 +109,7 @@ const Cart = ({ products, items = [], handleQuantity, isReadOnly }) => {
               height="6rem"
               paddingX="1rem"
             >
-              <div>{item.name}</div>
+              <div>{item.title}</div>
               <Box
                 display="flex"
                 justifyContent="space-between"
@@ -182,7 +123,7 @@ const Cart = ({ products, items = [], handleQuantity, isReadOnly }) => {
                       token,
                       items,
                       products,
-                      item._id,
+                      item.id,
                       item.qty * 1 + 1
                     );
                   }}
@@ -191,14 +132,14 @@ const Cart = ({ products, items = [], handleQuantity, isReadOnly }) => {
                       token,
                       items,
                       products,
-                      item._id,
+                      item.id,
                       item.qty * 1 - 1
                     );
                   }}
                   isReadOnly={isReadOnly}
                 />
                 <Box padding="0.5rem" fontWeight="700">
-                  ${item.cost}
+                  ${item.price}
                 </Box>
               </Box>
             </Box>
@@ -228,12 +169,16 @@ const Cart = ({ products, items = [], handleQuantity, isReadOnly }) => {
         {isReadOnly ? (
           ""
         ) : (
-          <Box display="flex" justifyContent="flex-end" className="cart-footer">
+          <Box
+            display="flex"
+            justifyContent="flex-end"
+            className="cart-footer p-4"
+          >
             <Button
               color="primary"
               variant="contained"
               startIcon={<ShoppingCart />}
-              className="checkout-btn"
+              className="checkout-btn font-[700] text-[1.1rem] normal-case"
               onClick={() => history.push("/checkout")}
             >
               Checkout
@@ -245,19 +190,23 @@ const Cart = ({ products, items = [], handleQuantity, isReadOnly }) => {
       {isReadOnly ? (
         <Box className="cart" padding="1rem">
           <h2>Order Details</h2>
-          <Box className="cart-row">
+          <Box className="cart-row flex items-center justify-between">
             <p>Products</p>
             <p>{getTotalItems(items)}</p>
           </Box>
-          <Box className="cart-row">
+          <Box className="cart-row flex items-center justify-between">
             <p>Subtotal</p>
             <p>${getTotalCartValue(items)}</p>
           </Box>
-          <Box className="cart-row">
+          <Box className="cart-row flex items-center justify-between">
             <p>Shipping Charges</p>
             <p>$0</p>
           </Box>
-          <Box className="cart-row" fontSize="1.25rem" fontWeight="700">
+          <Box
+            className="cart-row flex items-center justify-between"
+            fontSize="1.25rem"
+            fontWeight="700"
+          >
             <p>Total</p>
             <p>${getTotalCartValue(items)}</p>
           </Box>

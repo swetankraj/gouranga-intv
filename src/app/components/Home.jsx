@@ -15,22 +15,32 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ProductCard from "./ProductCard";
 import Cart from "./Cart";
-
+import { generateCartItemsFrom } from "./Cart";
+import { useSnackbar } from "notistack";
 export default function Home() {
+  const { enqueueSnackbar } = useSnackbar();
+
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [timerId, setTimerId] = useState(null);
   const [token, setToken] = useState(null);
   const [items, setItems] = useState([]);
+  const [isClient, setIsClient] = useState(false);
+  const [localStorageToken, setLocalStorageToken] = useState();
 
   let mdValue = 12;
-  let localStorageToken = undefined;
-  if (typeof window !== "undefined" && localStorage.getItem(token)) mdValue = 9;
-  if (typeof window !== "undefined" && localStorage.getItem(token))
-    localStorageToken = localStorage.getItem(token);
+
+  if (isClient && localStorage.getItem("loggedIn")) {
+    mdValue = 9;
+  }
 
   useEffect(() => {
+    if (window !== undefined) {
+      setIsClient(true);
+      setLocalStorageToken(localStorage.getItem("loggedIn"));
+    }
+
     const fetchData = async () => {
       const productsData = await performAPICall();
       // console.log("performAPICall >>", productsData);
@@ -38,13 +48,13 @@ export default function Home() {
       setProducts(productsData);
 
       //only runs when logged it.
-      setToken(localStorage.getItem("token"));
-      if (localStorage.getItem("token")) {
-        const cartData = await fetchCart(localStorage.getItem("token"));
+      setToken(localStorage.getItem("loggedIn"));
+      if (localStorage.getItem("loggedIn")) {
+        const cartData = await fetchCart(localStorage.getItem("loggedIn"));
         setItems(cartData);
         // console.log("fetchCartCall >>", cartData);
 
-        if (cartData.length) {
+        if (cartData?.length) {
           const completeCartData = generateCartItemsFrom(
             cartData,
             productsData
@@ -63,7 +73,7 @@ export default function Home() {
       const url = "https://fakestoreapi.com/products?limit=8";
       const res = await axios.get(url);
       // const data = await res.json();
-      console.log(res.data);
+      // console.log(res.data);
       return res.data;
     } catch (error) {
       console.log(">", error);
@@ -75,16 +85,9 @@ export default function Home() {
     if (!token) return;
 
     try {
-      // TODO: CRIO_TASK_MODULE_CART - Pass Bearer token inside "Authorization" header to get data from "GET /cart" API and return the response data
-
-      const url = `${config.endpoint}/cart`;
-      const response = await axios.get(url, {
-        headers: {
-          Authorization: "Bearer " + token,
-        },
-      });
-
-      return response.data;
+      if (isClient) {
+        return JSON.parse(localStorage.getItem("cart"));
+      }
     } catch (e) {
       if (e.response && e.response.status === 400) {
         enqueueSnackbar(e.response.data.message, { variant: "error" });
@@ -104,14 +107,17 @@ export default function Home() {
     const cartItems = generateCartItemsFrom(cartData, products);
     // console.log("mycartitems >> ", cartItems);
     setCart(cartItems);
+    console.log("products>>>", products);
+    console.log(cartData);
   };
 
   const isItemInCart = (items, productId) => {
     if (items) {
+      items = typeof items == "string" ? JSON.parse(items) : items;
       console.log(items);
       let idx = items.findIndex((item) => {
         // console.log(item.productId, productId);
-        return item.productId === productId;
+        return item.productId == productId;
       });
       // console.log(idx);
       return idx !== -1;
@@ -140,16 +146,50 @@ export default function Home() {
       );
     } else {
       try {
-        const response = await axios.post(
-          `${config.endpoint}/cart`,
-          { productId, qty },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+        let response;
+        if (isClient) {
+          response = localStorage.getItem("cart");
+          if (response == undefined) {
+            const cart = [
+              {
+                productId: `${productId}`,
+                quantity: qty * 1,
+              },
+            ];
+
+            localStorage.setItem("cart", JSON.stringify(cart));
+            setItems(cart);
+          } else {
+            let itemFound = false;
+            const updatedCart = [];
+            const localStorageCart = JSON.parse(response);
+            // console.log(localStorageCart);
+            localStorageCart.forEach((item) => {
+              if (item.productId == productId) {
+                itemFound = true;
+                const updatedValue = qty;
+                const newData = {
+                  productId: `${productId}`,
+                  quantity: `${updatedValue}`,
+                };
+
+                if (updatedValue > 0) updatedCart.push(newData);
+              } else updatedCart.push(item);
+            });
+
+            if (!itemFound) {
+              const newProduct = {
+                productId: `${productId}`,
+                quantity: qty * 1,
+              };
+              updatedCart.push(newProduct);
+            }
+
+            localStorage.setItem("cart", JSON.stringify(updatedCart));
+            setItems(updatedCart);
           }
-        );
-        updateCartItems(response.data, products);
+        }
+        updateCartItems(JSON.parse(localStorage.getItem("cart")), products);
       } catch (error) {
         if (error.response) {
           enqueueSnackbar(error.response.data.message, { variant: "error" });
@@ -198,7 +238,7 @@ export default function Home() {
           onChange={(e) => debounceSearch(e, timerId)}
         />
       </div>
-      <Grid>
+      <Grid container>
         <Grid item md={mdValue}>
           <Grid container>
             <Grid item className="w-full">
@@ -226,9 +266,16 @@ export default function Home() {
                   <ProductCard
                     product={product}
                     handleAddToCart={async () => {
-                      await addToCart(token, items, products, product._id, 1, {
-                        preventDuplicate: true,
-                      });
+                      await addToCart(
+                        localStorageToken,
+                        items,
+                        products,
+                        product.id,
+                        1,
+                        {
+                          preventDuplicate: true,
+                        }
+                      );
                     }}
                   />
                 </Grid>

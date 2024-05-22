@@ -1,13 +1,16 @@
 "use client";
 import React, { useState } from "react";
 import { Button, CircularProgress, Stack, TextField } from "@mui/material";
-
+import { useRouter } from "next/navigation";
 import { Box } from "@mui/system";
 import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 import Link from "next/link";
+import { enqueueSnackbar } from "notistack";
 
 const Login = () => {
+  const isClient = typeof window !== undefined ? true : false;
+  const history = useRouter();
   const [loginForm, setLoginForm] = useState({
     username: "",
     password: "",
@@ -18,6 +21,51 @@ const Login = () => {
       ...loginForm,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const login = async (formData) => {
+    if (validateInput(formData)) {
+      setCallingApi(true);
+      try {
+        if (isClient) {
+          const user = localStorage.getItem("username");
+          const pass = localStorage.getItem("password");
+
+          if (user == formData.username && pass == formData.password) {
+            enqueueSnackbar("Logged in successfully", { variant: "success" });
+            localStorage.setItem("loggedIn", true);
+            console.log("loggedIn");
+            history.push("/");
+          } else
+            enqueueSnackbar("Username or password is incorrect", {
+              variant: "error",
+            });
+        }
+      } catch (error) {
+        console.error(error);
+      }
+      setCallingApi(false);
+    }
+  };
+
+  const validateInput = (data) => {
+    if (!data.username) {
+      enqueueSnackbar("Username is a required field", { variant: "warning" });
+      return false;
+    } else if (data.username.length < 6) {
+      enqueueSnackbar("Username must be at least 6 characters", {
+        variant: "warning",
+      });
+      return false;
+    } else if (!data.password) {
+      enqueueSnackbar("Password is a required field", { variant: "warning" });
+      return false;
+    } else if (data.password.length < 6) {
+      enqueueSnackbar("Password must be at least 6 characters", {
+        variant: "warning",
+      });
+      return false;
+    } else return true;
   };
   return (
     <Box
@@ -78,6 +126,7 @@ const Login = () => {
               Register now
             </Link>
           </p>
+          <p>Register with a username and password and use it to login</p>
         </Stack>
       </Box>
       <Footer />

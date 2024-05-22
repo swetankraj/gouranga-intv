@@ -11,8 +11,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const Register = () => {
+  const { enqueueSnackbar } = useSnackbar();
   const [callingApi, setCallingApi] = useState(false);
   const history = useRouter();
+
+  const isClient = typeof window !== undefined ? true : false;
 
   const [registerForm, setRegisterForm] = useState({
     username: "",
@@ -25,6 +28,63 @@ const Register = () => {
       ...registerForm,
       [e.target.name]: e.target.value,
     });
+    console.log(registerForm);
+  };
+
+  const register = async (formData) => {
+    console.log("clicked");
+
+    if (validateInput(formData)) {
+      console.log("validated");
+      setCallingApi(true);
+
+      try {
+        if (isClient) {
+          localStorage.setItem("username", formData.username);
+          localStorage.setItem("password", formData.password);
+          enqueueSnackbar("Registered successfully", { variant: "success" });
+          history.push("/login");
+        }
+      } catch (error) {
+        //when server is active and we got error, it is usually in 400 series.
+        if (error.response && error.response.status === 400) {
+          enqueueSnackbar(error.response.data.message, { variant: "error" });
+        } else {
+          //when server is not active we get error is 500 series
+          enqueueSnackbar(
+            "Something went wrong. Check that the backend is running, reachable and returns valid JSON.",
+            { variant: "error" }
+          );
+        }
+      } finally {
+        setCallingApi(false);
+      }
+    }
+  };
+
+  const validateInput = (data) => {
+    console.log("reached validation");
+    if (!data.username) {
+      enqueueSnackbar("Username is a required field", { variant: "warning" });
+      return false;
+    } else if (data.username.length < 6) {
+      enqueueSnackbar("Username must be at least 6 characters", {
+        variant: "warning",
+      });
+      return false;
+    } else if (!data.password) {
+      enqueueSnackbar("Password is a required field", { variant: "warning" });
+      return false;
+    } else if (data.password.length < 6) {
+      enqueueSnackbar("Password must be at least 6 characters", {
+        variant: "warning",
+      });
+      return false;
+    } else if (data.password !== data.confirmPassword) {
+      enqueueSnackbar("Passwords do not match", { variant: "warning" });
+      return false;
+    } else return true;
+    // console.log(data);
   };
 
   return (

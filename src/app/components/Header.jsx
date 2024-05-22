@@ -1,4 +1,5 @@
-import { useState } from "react";
+"use client";
+import { useState, useEffect } from "react";
 import { Box } from "@mui/material";
 import { Avatar, Button, Stack, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -6,8 +7,24 @@ import { useRouter } from "next/navigation";
 
 const Header = ({ children, hasHiddenAuthButtons }) => {
   const [username, setUsername] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState("");
+  const [isClient, setIsClient] = useState(true);
 
   const history = useRouter();
+
+  useEffect(() => {
+    // if (window !== undefined) setIsClient(true);
+
+    const username = isClient ? localStorage.getItem("username") : undefined;
+    const loggedIn = isClient ? localStorage.getItem("loggedIn") : undefined;
+    setUsername(username);
+    setIsLoggedIn(loggedIn);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("loggedIn");
+    history.push("/login");
+  };
 
   return (
     <Box className="flex justify-between items-center p-[2rem] h-[5vh] header bg-white">
@@ -22,7 +39,7 @@ const Header = ({ children, hasHiddenAuthButtons }) => {
 
       {children}
       {/* logged in */}
-      {!hasHiddenAuthButtons && username && (
+      {isLoggedIn && !hasHiddenAuthButtons && username && (
         <>
           <Stack direction="row" spacing={1}>
             <Avatar alt={username} src="avatar.png" />
@@ -49,7 +66,7 @@ const Header = ({ children, hasHiddenAuthButtons }) => {
         </Button>
       )}
 
-      {!hasHiddenAuthButtons && !username && (
+      {!hasHiddenAuthButtons && !isLoggedIn && (
         <>
           <Stack direction="row" spacing={1}>
             <Button
